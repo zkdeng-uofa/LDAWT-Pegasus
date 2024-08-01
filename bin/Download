@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import os
+import sys
+import aiohttp
+import asyncio
+import tarfile
+import shutil
+from tqdm.asyncio import tqdm
+
+def parse_args():
+    """
+    Parse user inputs from arguments from the command line.
+    """
+    args = {
+        "--input_path": None,
+        "--output_folder": "output",
+        "--url_name": "photo_url",
+        "--class_name": "taxon_name",
+        "--download_number": 0
+    }
+
+    for i in range(1, len(sys.argv), 2):
+        key = sys.argv[i]
+        if key in args:
+            args[key] = sys.argv[i + 1]
+
+    return args
+
+async def download_image(session, semaphore, row, output, url_col, class_col):
+    """Download an image asynchronously using aiohttp with a semaphore to limit concurrency"""
+    async with semaphore:
+        key, image_url = row.name, row[url_col]
+        class_name = row[class_col].replace("'", "").replace(" ", "_")
+        file_name = f"{image_url.split('/')[-2]}.jpg"
+        file_path = os.path.join(output, class_name, file_name)
+
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        try:
+            async with session.get(image_url) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    with open(file_path, 'wb') as f:
+                        f.write(content)
+                    return key, file_name, class_name, None
+                else:
+                    return key, None, class_name, f"HTTP error: {response.status}"
+        except Exception as err:
+            return key, None, class_name, str(err)
+    
+async def main(concurrent_downloads=500):
+    args = parse_args()
+    
+    tar_path = args["--input_path"]
+    output_folder = args["--output_folder"]
+    url_col = args["--url_name"]
+    class_col = args["--class_name"]
+    download_index = int(args["--download_number"])
+
+    if tar_path is None:
+        print("Usage: script.py --input_path <input_tar> [--output_folder <output_folder>] [--url_name <url_column>] [--class_name <class_column>] [--download_number <download_index>]")
+        sys.exit(1)
+
+    # Extract tar file
+    with tarfile.open(tar_path, "r:gz") as tar:
+        tar.extractall(path=output_folder)
+    
+    # Get list of extracted files
+    extracted_files = [f for f in os.listdir(output_folder) if f.endswith(('.parquet', '.csv'))]
+    if download_index >= len(extracted_files):
+        print(f"Error: download_number {download_index} is out of range. Only {len(extracted_files)} files found.")
+        sys.exit(1)
+    
+    # Read the specified file into a dataframe
+    file_path = os.path.join(output_folder, extracted_files[download_index])
+    if file_path.endswith(".parquet"):
+        df = pd.read_parquet(file_path)
+    elif file_path.endswith(".csv"):
+        df = pd.read_csv(file_path)
+    else:
+        print("Unsupported file format. Please provide a CSV or Parquet file.")
+        sys.exit(1)
+    
+    semaphore = asyncio.Semaphore(concurrent_downloads)
+    
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for _, row in df.iterrows():
+            task = download_image(session, semaphore, row, output_folder, url_col, class_col)
+            tasks.append(asyncio.create_task(task))
+        
+        errors = 0
+        for future in tqdm(asyncio.as_completed(tasks), total=len(tasks)):
+            key, file_name, class_name, error = await future
+            if error:
+                errors += 1
+                #print(f"Error downloading image {file_name}: {error}")
+        print(f"Completed with {errors} errors.")
+    
+    # Delete the used CSV/Parquet file
+    #shutil.rmtree(file_path)
+    print(f"Deleted file: {file_path}")
+
+    # Tar the output folder
+    output_tar_path = f"{output_folder}.tar.gz"
+    with tarfile.open(output_tar_path, "w:gz") as tar:
+        tar.add(output_folder, arcname=os.path.basename(output_folder))
+    #os.rmdir(output_folder)
+    #shutil.rmtree(output_folder)
+
+    #df.to_parquet("group1.parquet", index=False)
+    #print(f"Tared output folder into: {output_tar_path}")
+
+if __name__ == '__main__':
+    import time
+    #time.sleep(10000)
+    asyncio.run(main())

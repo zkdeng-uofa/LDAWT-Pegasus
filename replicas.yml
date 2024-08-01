@@ -1,0 +1,10 @@
+x-pegasus:
+  apiLang: python
+  createdBy: exouser
+  createdOn: 08-01-24T00:38:53Z
+pegasus: 5.0.4
+replicas:
+- lfn: hundred_AIIRA.csv
+  pfns:
+  - site: local
+    pfn: /home/exouser/Work/Pegasus-LDAWT/input/hundred_AIIRA.csv

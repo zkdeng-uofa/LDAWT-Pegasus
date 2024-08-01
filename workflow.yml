@@ -1,0 +1,198 @@
+x-pegasus:
+  apiLang: python
+  createdBy: exouser
+  createdOn: 08-01-24T00:38:53Z
+pegasus: 5.0.4
+name: ldawt
+jobs:
+- type: job
+  name: SplitParquet
+  id: ID0000001
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: group1.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+  - lfn: hundred_AIIRA.csv
+    type: input
+- type: job
+  name: SplitParquet
+  id: ID0000002
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group2.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+- type: job
+  name: SplitParquet
+  id: ID0000003
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: group3.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+  - lfn: hundred_AIIRA.csv
+    type: input
+- type: job
+  name: SplitParquet
+  id: ID0000004
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group4.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+- type: job
+  name: SplitParquet
+  id: ID0000005
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: group5.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+  - lfn: hundred_AIIRA.csv
+    type: input
+- type: job
+  name: SplitParquet
+  id: ID0000006
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group6.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+- type: job
+  name: SplitParquet
+  id: ID0000007
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group7.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+- type: job
+  name: SplitParquet
+  id: ID0000008
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group8.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+- type: job
+  name: SplitParquet
+  id: ID0000009
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: group9.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+  - lfn: hundred_AIIRA.csv
+    type: input
+- type: job
+  name: SplitParquet
+  id: ID0000010
+  arguments:
+  - --file
+  - hundred_AIIRA.csv
+  - --grouping_col
+  - name
+  - --groups
+  - '10'
+  - --output_file
+  - output
+  uses:
+  - lfn: hundred_AIIRA.csv
+    type: input
+  - lfn: group10.parquet
+    type: output
+    stageOut: true
+    registerReplica: false
+jobDependencies: []

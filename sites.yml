@@ -1,0 +1,28 @@
+x-pegasus:
+  apiLang: python
+  createdBy: exouser
+  createdOn: 08-01-24T00:38:53Z
+pegasus: 5.0.4
+sites:
+- name: local
+  directories:
+  - type: sharedScratch
+    path: /home/exouser/Work/Pegasus-LDAWT/scratch
+    sharedFileSystem: false
+    fileServers:
+    - url: file:///home/exouser/Work/Pegasus-LDAWT/scratch
+      operation: all
+  - type: localStorage
+    path: /home/exouser/Work/Pegasus-LDAWT/output
+    sharedFileSystem: false
+    fileServers:
+    - url: file:///home/exouser/Work/Pegasus-LDAWT/output
+      operation: all
+- name: condorpool
+  directories: []
+  profiles:
+    condor:
+      universe: vanilla
+    pegasus:
+      style: condor
+      data.configuration: condorio

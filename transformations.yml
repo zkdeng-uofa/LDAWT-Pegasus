@@ -1,0 +1,16 @@
+x-pegasus:
+  apiLang: python
+  createdBy: exouser
+  createdOn: 08-01-24T00:38:53Z
+pegasus: 5.0.4
+transformations:
+- name: SplitParquet
+  sites:
+  - name: condorpool
+    pfn: /home/exouser/Work/Pegasus-LDAWT/bin/SplitParquet
+    type: stageable
+- name: Download
+  sites:
+  - name: condorpool
+    pfn: /home/exouser/Work/Pegasus-LDAWT/bin/Download
+    type: stageable

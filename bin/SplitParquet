@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import numpy as np
+import os
+import sys
+from math import ceil
+from dataclasses import dataclass, field
+import tarfile
+
+@dataclass
+class FilterArguments:
+    """
+    This class instantiates the user inputs of the script that they may input through command line.
+    """
+    file: str = field(
+        default=None,
+        metadata={"help": "name of input file (CSV or Parquet)"}
+    )
+    grouping_col: str = field(
+        default=None,
+        metadata={"help": "name of col to group on"}
+    )
+    groups: int = field(
+        default=None,
+        metadata={"help": "number of groups to divide into"}
+    )
+    output_file: str = field(
+        default=None,
+        metadata={"help": "name of output folder"}
+    )
+
+def parse_command():
+    if len(sys.argv) != 9:
+        print("Usage: script.py --file <input_file> --grouping_col <grouping_col> --groups <num_groups> --output_folder <output_folder>")
+        sys.exit(1)
+    
+    args = {sys.argv[i]: sys.argv[i + 1] for i in range(1, len(sys.argv), 2)}
+    
+    return FilterArguments(
+        file=args["--file"],
+        grouping_col=args["--grouping_col"],
+        groups=int(args["--groups"]),
+        output_file=args["--output_file"]
+    )
+
+def greedy_grouping(num_partitions, df, count, name):
+    sorted_df = df.sort_values(by=count, ascending=False).reset_index(drop=True)
+    partitions = [[] for _ in range(num_partitions)]
+    partition_sums = [0 for _ in range(num_partitions)]
+    
+    for _, row in sorted_df.iterrows():
+        min_partition_idx = np.argmin(partition_sums)
+        partitions[min_partition_idx].append(row)
+        partition_sums[min_partition_idx] += row[count]
+    
+    new_rows = []
+    for group_id, partition in enumerate(partitions, 1):
+        for row in partition:
+            new_rows.append({name: row[name], count: row[count], "group": group_id})
+    
+    output_df = pd.DataFrame(new_rows)
+    return output_df
+
+def partition_df(df, num_partitions, taxon_col):
+    partition_size = ceil(len(df) / num_partitions)
+    sorted_df = df.sort_values(by=taxon_col).reset_index(drop=True)
+    sorted_df['group_num'] = ((np.arange(len(sorted_df)) // partition_size) + 1)
+    sorted_df[taxon_col] = sorted_df[taxon_col] + sorted_df['group_num'].astype(str)
+    sorted_df = sorted_df.drop(columns=['group_num'])
+    return sorted_df
+
+def main():
+    inputs = parse_command()
+    file_path = inputs.file
+    #output_folder = inputs.output_folder
+    
+    if file_path.endswith(".parquet"):
+        total_df = pd.read_parquet(file_path)
+    elif file_path.endswith(".csv"):
+        total_df = pd.read_csv(file_path)
+    else:
+        raise ValueError("Unsupported file format. Please provide a CSV or Parquet file.")
+
+    total_df = partition_df(total_df, inputs.groups, inputs.grouping_col)
+    count_df = total_df.groupby(inputs.grouping_col).size().reset_index(name="Count").sort_values(by='Count', ascending=False)
+    groups_df = greedy_grouping(inputs.groups, count_df, "Count", inputs.grouping_col)
+    
+    total_df = total_df.drop(columns=['group'], errors='ignore')
+    total_df_merged = total_df.merge(groups_df[[inputs.grouping_col, "group"]], on=inputs.grouping_col, how="left")
+
+    #os.makedirs(output_file, exist_ok=True)
+    
+    #tar_path = os.path.join("grouped_files.tar.gz")
+
+    for group in total_df_merged["group"].unique():
+        subset_df = total_df_merged[total_df_merged["group"] == group]
+        parquet_path = os.path.join(f"group{group}.parquet")
+        subset_df.to_parquet(parquet_path, index=False)
+
+    # tar_path = f'{inputs.output_file}.tar.gz'
+    # with tarfile.open(tar_path, "w:gz") as tar:
+    #     for group in total_df_merged["group"].unique():
+    #         subset_df = total_df_merged[total_df_merged["group"] == group]
+    #         csv_path = os.path.join(f"group_{group}.csv")
+    #         subset_df.to_parquet(csv_path, index=False)
+    #         tar.add(csv_path, arcname=f"group_{group}.parquet")
+    #         os.remove(csv_path)
+    
+    #print(f"Grouped files are tarred into: {tar_path}")
+
+if __name__ == "__main__":
+    main()
